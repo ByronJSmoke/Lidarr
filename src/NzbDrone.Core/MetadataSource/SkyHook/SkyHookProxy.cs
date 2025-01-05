@@ -186,20 +186,18 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             {
                 var lowerTitle = title.ToLowerInvariant();
 
-                if (IsMbidQuery(lowerTitle))
+                if (IsForeignIdQuery(lowerTitle))
                 {
                     var slug = lowerTitle.Split(':')[1].Trim();
 
-                    var isValid = Guid.TryParse(slug, out var searchGuid);
-
-                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || isValid == false)
+                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace))
                     {
                         return new List<Artist>();
                     }
 
                     try
                     {
-                        var existingArtist = _artistService.FindById(searchGuid.ToString());
+                        var existingArtist = _artistService.FindById(slug);
                         if (existingArtist != null)
                         {
                             return new List<Artist> { existingArtist };
@@ -207,7 +205,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
 
                         var metadataProfile = _metadataProfileService.All().First().Id; // Change this to Use last Used profile?
 
-                        return new List<Artist> { GetArtistInfo(searchGuid.ToString(), metadataProfile) };
+                        return new List<Artist> { GetArtistInfo(slug, metadataProfile) };
                     }
                     catch (ArtistNotFoundException)
                     {
@@ -248,24 +246,22 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             {
                 var lowerTitle = title.ToLowerInvariant();
 
-                if (IsMbidQuery(lowerTitle))
+                if (IsForeignIdQuery(lowerTitle))
                 {
                     var slug = lowerTitle.Split(':')[1].Trim();
 
-                    var isValid = Guid.TryParse(slug, out var searchGuid);
-
-                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace) || isValid == false)
+                    if (slug.IsNullOrWhiteSpace() || slug.Any(char.IsWhiteSpace))
                     {
                         return new List<Album>();
                     }
 
                     try
                     {
-                        var existingAlbum = _albumService.FindById(searchGuid.ToString());
+                        var existingAlbum = _albumService.FindById(slug);
 
                         if (existingAlbum == null)
                         {
-                            var data = GetAlbumInfo(searchGuid.ToString());
+                            var data = GetAlbumInfo(slug);
                             var album = data.Item2;
                             album.Artist = _artistService.FindById(data.Item1) ?? new Artist
                             {
@@ -330,7 +326,7 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
         {
             var lowerTitle = title.ToLowerInvariant();
 
-            if (IsMbidQuery(lowerTitle))
+            if (IsForeignIdQuery(lowerTitle))
             {
                 var artist = SearchForNewArtist(lowerTitle);
                 if (artist.Any())
@@ -378,9 +374,9 @@ namespace NzbDrone.Core.MetadataSource.SkyHook
             }
         }
 
-        private static bool IsMbidQuery(string query)
+        private static bool IsForeignIdQuery(string query)
         {
-            return query.StartsWith("lidarr:") || query.StartsWith("lidarrid:") || query.StartsWith("mbid:");
+            return query.StartsWith("lidarr:") || query.StartsWith("lidarrid:") || query.StartsWith("mbid:") || query.StartsWith("id:");
         }
 
         private Artist MapSearchResult(ArtistResource resource)
